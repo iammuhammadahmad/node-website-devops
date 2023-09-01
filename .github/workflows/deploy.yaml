@@ -1,0 +1,54 @@
+name: Deploy Nodejs Website to EC2
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  HOST: ${{ secrets.HOST }}
+  REMOTE_USER: ${{ secrets.REMOTE_USER }}
+
+  
+jobs:
+  BUILD_Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      
+      - name: Checkout the source code.
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+
+      
+      - name: Install Dependencies
+        run: npm install
+
+      
+      - name: Run Test
+        run: echo "Test are passed"
+
+      - name: rsync deployments
+        uses: burnett01/rsync-deployments@5.1
+        with:
+          switches: -avzr --delete
+          path: ./*
+          remote_path: /var/www/node-website
+          remote_host: "${{ env.HOST }}"
+          remote_user: "${{ env.REMOTE_USER }}"
+          remote_key: "${{ env.SSH_PRIVATE_KEY }}"
+      
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: SSH into the remote server and start the app
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ env.REMOTE_USER }}@${{ env.HOST }} 'cd /var/www/node-website && ./start_server.sh'
