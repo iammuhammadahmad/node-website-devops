@@ -8,50 +8,47 @@ env:
   SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
   HOST: ${{ secrets.HOST }}
   REMOTE_USER: ${{ secrets.REMOTE_USER }}
+  APP_PATH: /var/www/node-website
 
   
 jobs:
   BUILD_Deploy:
     runs-on: ubuntu-latest
     steps:
-      
       - name: Checkout the source code.
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-
-
       - name: Use Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
-
       
       - name: Install Dependencies
         run: npm install
 
-      
       - name: Run Test
         run: echo "Test are passed"
 
-      - name: rsync deployments
+      - name: Deploy Files to EC2
         uses: burnett01/rsync-deployments@5.1
         with:
           switches: -avzr --delete
           path: ./*
-          remote_path: /var/www/node-website
+          remote_path: "${{env.APP_PATH}}"
           remote_host: "${{ env.HOST }}"
           remote_user: "${{ env.REMOTE_USER }}"
           remote_key: "${{ env.SSH_PRIVATE_KEY }}"
 
-
-       # Runs a single command using the runners shell
       - name: Start Application On EC2
         run: |
           echo "${{env.SSH_PRIVATE_KEY}}" > private_key && chmod 600 private_key
-          ssh -o StrictHostKeyChecking=no -i private_key ${{env.REMOTE_USER}}@${{env.HOST}}
-          
+          ssh -o StrictHostKeyChecking=no -i private_key ${{env.REMOTE_USER}}@${{env.HOST}}<<EOF
           #Now we have got the access of EC2 and we will start the deploy .
+          # Login as root
+          sudo -i
+          # Go inside app directory
+          cd ${{env.APP_PATH}}
           chmod +x start_server.sh
-
           ./start_server.sh
+          EOF
