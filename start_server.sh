@@ -1,4 +1,7 @@
 #!/bin/bash
+# Login as root
+sudo -i
+
 APPLICATION_NAME="node-website"
 cd  /var/www/node-website
 

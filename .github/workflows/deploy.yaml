@@ -43,12 +43,15 @@ jobs:
           remote_host: "${{ env.HOST }}"
           remote_user: "${{ env.REMOTE_USER }}"
           remote_key: "${{ env.SSH_PRIVATE_KEY }}"
-      
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.5
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: SSH into the remote server and start the app
+
+       # Runs a single command using the runners shell
+      - name: Start Application On EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i ${{ secrets.SSH_PRIVATE_KEY }} ${{ env.REMOTE_USER }}@${{ env.HOST }} 'cd /var/www/node-website && ./start_server.sh'
+          echo "${{env.SSH_PRIVATE_KEY}}" > private_key && chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${{env.REMOTE_USER}}@${{env.HOST}}
+          
+          #Now we have got the access of EC2 and we will start the deploy .
+          chmod +x start_server.sh
+
+          ./start_server.sh
